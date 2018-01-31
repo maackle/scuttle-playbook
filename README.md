@@ -1,4 +1,4 @@
-# ssb-playbook
+# ssb-playbooks
 
 > ALICE: Knock knock.
 >
@@ -13,9 +13,9 @@ Playbooks help you write tests for complex Secure Scuttlebutt apps. If you have 
 
 A Playbook is a light structure that lets you define a "script" with one or more "actors". Each line of the script has three parts:
 
-* `from` -- the actor
-* `data` -- the content of the message to send
-* `test` -- an optional function to run some tests after the message has been published
+* `from`: the actor (using `sbot.createFeed()`)
+* `data`: the content of the message to send
+* `test`: an optional function to run some tests after the message has been published
 
 ## Usage
 
@@ -28,7 +28,7 @@ Coming up is a simple example for how you might test the recognition of friendsh
 It looks like this:
 
 ```js
-const Playbook = require('ssb-playbook')
+const Playbook = require('ssb-playbooks')
                  .use(whatever)
                  .use(you)
                  .use(want)
@@ -95,5 +95,5 @@ Anything you pass to `Playbook.use()` is passed directly on to `scuttlebot`, so 
 With [npm](https://npmjs.org/) installed, run
 
 ```
-$ npm install ssb-playbook
+$ npm install ssb-playbooks
 ```

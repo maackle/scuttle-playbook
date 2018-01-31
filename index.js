@@ -1,6 +1,7 @@
 'use strict';
 
 const scuttlebot = require('scuttlebot')
+const client = require('ssb-client')
 
 const withException = fn => (err, data) => {
   if (err) { throw new Error(err) }
@@ -17,8 +18,8 @@ const Playbook = function (scriptBuilder, cleanup) {
 
   const runPlay = (playNum) => {
     if (playNum >= playbook.length) {
+      cleanup && cleanup()
       sbot.close()
-      cleanup()
       return
     }
 
@@ -26,7 +27,7 @@ const Playbook = function (scriptBuilder, cleanup) {
     const next = () => runPlay(playNum + 1)
 
     from.add(data, withException(() => {
-      if (test.length < 2) {
+      if (test && test.length < 2) {
         // if the function doesn't accept a second parameter,
         // assume it's synchronous and move on
         test(sbot)
