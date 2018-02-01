@@ -2,22 +2,34 @@
 
 const scuttlebot = require('scuttlebot')
 const client = require('ssb-client')
+const {withException} = require('./util')
 
-const withException = fn => (err, data) => {
-  if (err) { throw new Error(err) }
-  else { fn(data) }
-}
-
-const output = x => console.log(x)
+const output = x => x
+// const output = x => console.log(x)
 
 const Playbook = function (scriptBuilder, cleanup) {
-
+  if (typeof(scriptBuilder) !== 'function') {
+    throw "Function signature must be: (sbot) => (actors) => [script]"
+    return
+  }
   // create a temporary server instance just for this play-through
   const sbot = scuttlebot({ temp: true })
   const script = scriptBuilder(sbot)
+  const die = msg => {
+    sbot.close()
+    throw msg
+  }
+
+  if (typeof(script) !== 'function') {
+    die("Function signature must be: (sbot) => (actors) => [script]")
+  }
   // create as many feeds ("users") as there are arguments to `script`
   const feeds = new Array(script.length).fill().map(() => sbot.createFeed())
   const playbook = script(...feeds)
+
+  if (!Array.isArray(playbook)) {
+    die(`Playbook must be an array, but it is of type ${ typeof playbook }`)
+  }
 
   output("•§•      Playbook starting with these actors      •§•")
   feeds.forEach(f => output(f.id))
@@ -46,13 +58,15 @@ const Playbook = function (scriptBuilder, cleanup) {
       }
     } else if (typeof(play) === 'object') {
       // publish a message
+      let from, data
       if (Array.isArray(play)) {
-        play = {
-          from: play[0],
-          data: play[1],
-        }
+        from = play[0]
+        data = play[1]
+      } else {
+        from = play.from
+        data = play.data
       }
-      play.from.add(play.data, withException(next))
+      from.add(data, withException(next))
     }
   }
 
