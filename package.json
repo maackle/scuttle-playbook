@@ -1,9 +1,9 @@
 {
-  "name": "ssb-playbooks",
+  "name": "ssb-playbook",
   "version": "0.0.1",
   "description": "Easily test states in complex SSB apps",
   "main": "index.js",
-  "repository": "git@github.com:maackle/ssb-playbooks.git",
+  "repository": "git@github.com:maackle/ssb-playbook.git",
   "author": "Michael Dougherty <maackle.d@gmail.com>",
   "license": "MIT",
   "dependencies": {

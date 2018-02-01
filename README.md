@@ -1,4 +1,4 @@
-# ssb-playbooks
+# ssb-playbook
 
 > ALICE: Knock knock.
 >
@@ -28,7 +28,7 @@ Coming up is a simple example for how you might test the recognition of friendsh
 It looks like this:
 
 ```js
-const Playbook = require('ssb-playbooks')
+const Playbook = require('ssb-playbook')
                  .use(whatever)
                  .use(you)
                  .use(want)
@@ -95,5 +95,5 @@ Anything you pass to `Playbook.use()` is passed directly on to `scuttlebot`, so 
 With [npm](https://npmjs.org/) installed, run
 
 ```
-$ npm install ssb-playbooks
+$ npm install ssb-playbook
 ```
