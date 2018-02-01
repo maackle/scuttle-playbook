@@ -1,4 +1,4 @@
-# ssb-playbook
+# scuttle-playbook
 
 > ALICE: Knock knock.
 >
@@ -70,7 +70,7 @@ Here's a simple example for how you might test the recognition of friendship bas
 Skipping over the details of doing the actual testing, it might look something like this:
 
 ```js
-const Playbook = require('ssb-playbook')
+const Playbook = require('scuttle-playbook')
                  .use(whatever)
                  .use(you)
                  .use(want)
@@ -140,7 +140,7 @@ You will have six actors available in your script.
 
 ## Examples using actual testing frameworks
 
-See [`examples/`](examples/) for examples of real tests using the [tape](https://github.com/substack/tape) test harness. Note that ssb-playbook is designed to let you use whatever test runner you want.
+See [`examples/`](examples/) for examples of real tests using the [tape](https://github.com/substack/tape) test harness. Note that scuttle-playbook is designed to let you use whatever test runner you want.
 
 ## Under the hood
 
@@ -153,5 +153,5 @@ Anything you pass to `Playbook.use()` is passed directly on to `scuttlebot`, so 
 With [npm](https://npmjs.org/) installed, run
 
 ```
-$ npm install ssb-playbook
+$ npm install scuttle-playbook
 ```
