@@ -8,6 +8,8 @@ const withException = fn => (err, data) => {
   else { fn(data) }
 }
 
+const output = x => console.log(x)
+
 const Playbook = function (scriptBuilder, cleanup) {
 
   // create a temporary server instance just for this play-through
@@ -15,6 +17,9 @@ const Playbook = function (scriptBuilder, cleanup) {
   // create as many feeds ("users") as there are arguments to `scriptBuilder`
   const feeds = new Array(scriptBuilder.length).fill().map(() => sbot.createFeed())
   const playbook = scriptBuilder(...feeds)
+
+  output("•§•      Playbook starting with these actors      •§•")
+  feeds.forEach(f => output(f.id))
 
   const runPlay = (playNum) => {
     if (playNum >= playbook.length) {
@@ -27,7 +32,9 @@ const Playbook = function (scriptBuilder, cleanup) {
     const next = () => runPlay(playNum + 1)
 
     from.add(data, withException(() => {
-      if (test && test.length < 2) {
+      if (!test) {
+        next()
+      } else if (test.length < 2) {
         // if the function doesn't accept a second parameter,
         // assume it's synchronous and move on
         test(sbot)

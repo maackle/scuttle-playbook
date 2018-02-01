@@ -80,9 +80,9 @@ Playbook(script, finale)
 
 ```
 
-## Examples using testing frameworks
+## Examples using actual testing frameworks
 
-TODO
+See `examples/` for examples of real tests using [tape](https://github.com/substack/tape)
 
 ## Under the hood
 
