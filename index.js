@@ -14,9 +14,10 @@ const Playbook = function (scriptBuilder, cleanup) {
 
   // create a temporary server instance just for this play-through
   const sbot = scuttlebot({ temp: true })
-  // create as many feeds ("users") as there are arguments to `scriptBuilder`
-  const feeds = new Array(scriptBuilder.length).fill().map(() => sbot.createFeed())
-  const playbook = scriptBuilder(...feeds)
+  const script = scriptBuilder(sbot)
+  // create as many feeds ("users") as there are arguments to `script`
+  const feeds = new Array(script.length).fill().map(() => sbot.createFeed())
+  const playbook = script(...feeds)
 
   output("•§•      Playbook starting with these actors      •§•")
   feeds.forEach(f => output(f.id))
@@ -28,26 +29,34 @@ const Playbook = function (scriptBuilder, cleanup) {
       return
     }
 
-    const {from, data, test} = playbook[playNum]
+    const play = playbook[playNum]
     const next = () => runPlay(playNum + 1)
 
-    from.add(data, withException(() => {
-      if (!test) {
-        next()
-      } else if (test.length < 2) {
+    if (typeof(play) === 'function') {
+      // run some code, probably a test
+      if (play.length < 1) {
         // if the function doesn't accept a second parameter,
         // assume it's synchronous and move on
-        test(sbot)
+        play()
         next()
       } else {
         // if the function expects a second parameter,
         // assume it's async and let it call done itself
-        test(sbot, next)
+        play(next)
       }
-    }))
+    } else if (typeof(play) === 'object') {
+      // publish a message
+      if (Array.isArray(play)) {
+        play = {
+          from: play[0],
+          data: play[1],
+        }
+      }
+      play.from.add(play.data, withException(next))
+    }
   }
 
-  // run the first message to kick things off
+  // run the first play to kick things off
   runPlay(0)
 }
 

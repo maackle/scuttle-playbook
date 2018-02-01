@@ -11,7 +11,7 @@
 
 Playbooks help you write tests for complex Secure Scuttlebutt apps. If you have app that builds up a complex state (such as a [flumeview](https://github.com/flumedb/flumedb)) from a series of messages that have been published by a number of parties, Playbooks can help with that.
 
-A Playbook is a light structure that lets you define a "script" with one or more "actors". Each line of the script has three parts:
+A Playbook is a light structure that lets you define a "script" with one or more "actors" (users with their own key). Each line of the script specifies either a message to publish, or a test to run. The playbook ensures that each step only runs after the last has completed. It also handles creating and tearing down temporary scuttlebot servers as well as allocating feeds for the actors.
 
 * `from`: the actor (using `sbot.createFeed()`)
 * `data`: the content of the message to send
@@ -19,13 +19,16 @@ A Playbook is a light structure that lets you define a "script" with one or more
 
 ## Usage
 
-Coming up is a simple example for how you might test the recognition of friendship based on mutual following. It has two actors, `alice` and `bob`, and the script has three lines:
+Here's a simple example for how you might test the recognition of friendship based on mutual following. It has two actors, `alice` and `bob`, and the script has three lines:
 
-* `alice` follows `bob`, and we check that this has been recorded
-* `bob` follows `alice`, and we check that they are now friends
-* `alice` unfollows `bob`, and we check that they are no longer friends
+1. *publish* message: `alice` follows `bob`
+2. *test*: that bob shows up in alice's follow graph
+3. *publish* message: `bob` follows `alice`
+4. *test*: that alice shows up in bob's follow graph and that they are friends
+5. *publish* message: `alice` unfollows `bob`
+6. *test*: that they are no longer friends
 
-It looks like this:
+Skipping over the details of doing the actual testing, it might look something like this:
 
 ```js
 const Playbook = require('ssb-playbook')
@@ -34,7 +37,8 @@ const Playbook = require('ssb-playbook')
                  .use(want)
 
 // define the script
-const script = (alice, bob) => [
+const script = sbot => (alice, bob) => [
+  // step 1
   {
     from: alice,
     data: {
@@ -42,11 +46,12 @@ const script = (alice, bob) => [
       contact: bob.id,
       following: true
     }
-    test: (sbot, done) => {
-      // test that alice follows bob (we'll go into testing later)
-      done()
-    }
   },
+  // step 2
+  done => {
+    testThatAliceFollowsBob((err, data) => done())
+  },
+  // step 3
   {
     from: bob,
     data: {
@@ -54,11 +59,12 @@ const script = (alice, bob) => [
       contact: alice.id,
       following: true
     }
-    test: (sbot, done) => {
-      // test that bob and alice are now friends
-      done()
-    }
   },
+  // step 4
+  done => {
+    testThatBobAndAliceAreNowFriends((err, data) => done())
+  },
+  // step 5
   {
     from: alice,
     data: {
@@ -66,10 +72,10 @@ const script = (alice, bob) => [
       contact: bob.id,
       following: false
     }
-    test: (sbot, done) => {
-      // test that alice and bob are *no longer* friends
-      done()
-    }
+  },
+  // step 6
+  done => {
+    testThatAliceAndBobAreNoLongerFriends((err, data) => done())
   },
 ]
 
