@@ -14,22 +14,20 @@ A Playbook is a light structure that lets you define a "script" with one or more
 
 #### Message steps
 
-A message step can be specified as an object, like this...
+A message step looks like `step.message(actor, data)` or `step.message(actor, label, data)`
 
 ```js
-{
-  from: actor,
-  data: {
-    type: 'test',
-    moreStuff: 'whatever you want!'
-  }
-}
-```
+// no label
+step.message(actor, {
+  type: 'test',
+  moreStuff: 'whatever you want!'
+})
 
-...or as an array, like this:
-
-```js
-[actor, {type: 'test', moreStuff: 'whatever you want!'}]
+// with label
+step.message(actor, 'label' {
+  type: 'test',
+  moreStuff: 'whatever you want!'
+})
 ```
 
 #### Test steps
@@ -37,21 +35,21 @@ A message step can be specified as an object, like this...
 A test step is just a function. To handle asynchronous tests, your function can accept `done`, which you can call when the test is over, like this:
 
 ```js
-done => {
+step.test(done => {
   sbot.whoami((err, me) => {
     t.ok(me)
     done()
   })
-}
+})
 ```
 
 If your test is purely synchronous, you can omit the `done` parameter and the playbook will continue after your function completes:
 
 ```js
-() => {
+step.test(() => {
   t.equal(1 + 1, 2)
   t.equal(e**(i * pi) + 1, 0)
-}
+})
 ```
 
 Let's see how you can compose these steps together to create a playbook script.
@@ -78,42 +76,33 @@ const Playbook = require('scuttle-playbook')
 // define the script
 const script = sbot => (alice, bob) => [
   // step 1 - message
-  {
-    from: alice,
-    data: {
-      type: 'contact',
-      contact: bob.id,
-      following: true
-    }
-  },
-  // step 2 - test
-  done => {
+  step.message(alice, {
+    type: 'contact',
+    contact: bob.id,
+    following: true
+  }),
+  step.test(done => {
     sbot.testThatAliceFollowsBob((err, data) => done())
-  },
-  // step 3 - message
-  {
+  }),
+  step.message({
     from: bob,
     data: {
       type: 'contact',
       contact: alice.id,
       following: true
     }
-  },
-  // step 4 - test
-  done => {
+  }),
+  step.test(done => {
     sbot.testThatBobAndAliceAreNowFriends((err, data) => done())
-  },
-  // step 5 - note that here we're using the array style just for illustration,
-  // but otherwise it is not so different from the previous message steps
-  [alice, {
+  }),
+  step.message(alice, {
     type: 'contact',
     contact: bob.id,
     following: false
-  }],
-  // step 6 - test
-  done => {
+  }),
+  step.test(done => {
     sbot.testThatAliceAndBobAreNoLongerFriends((err, data) => done())
-  },
+  }),
 ]
 
 const finale = () => console.log('all done')
@@ -136,7 +125,7 @@ The Playbook creates an sbot instance for you and passes it in. After that, it w
 sbot => (alvin, simon, theodore, larry, curly, moe) => [...]
 ```
 
-You will have six actors available in your script.
+then you will have six actors available in your script.
 
 ## Examples using actual testing frameworks
 
@@ -147,6 +136,11 @@ See [`examples/`](examples/) for examples of real tests using the [tape](https:/
 Each time you run a script with `Playbook()`, a `scuttlebot` instance is created and destroyed. The instance is created with the `{temp: true}` option, which means your data will not be affected, and test data won't linger after a test is run.
 
 Anything you pass to `Playbook.use()` is passed directly on to `scuttlebot`, so the instance that gets created will contain whatever plugins you `use`d.
+
+## TODO
+
+* Document refs
+* Demonstrate script composition
 
 ## Install
 
