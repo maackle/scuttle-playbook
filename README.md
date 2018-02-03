@@ -75,7 +75,6 @@ const Playbook = require('scuttle-playbook')
 
 // define the script
 const script = sbot => (alice, bob) => [
-  // step 1 - message
   step.message(alice, {
     type: 'contact',
     contact: bob.id,
@@ -84,13 +83,10 @@ const script = sbot => (alice, bob) => [
   step.test(done => {
     sbot.testThatAliceFollowsBob((err, data) => done())
   }),
-  step.message({
-    from: bob,
-    data: {
-      type: 'contact',
-      contact: alice.id,
-      following: true
-    }
+  step.message(bob, {
+    type: 'contact',
+    contact: alice.id,
+    following: true
   }),
   step.test(done => {
     sbot.testThatBobAndAliceAreNowFriends((err, data) => done())
