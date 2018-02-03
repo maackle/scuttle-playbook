@@ -36,7 +36,7 @@ const Playbook = function (scriptBuilder, cleanup) {
     throw msg
   }
 
-  const script = scriptBuilder(sbot, messageRefs)
+  const script = scriptBuilder(sbot)
   if (typeof(script) !== 'function') {
     die("Function signature must be: (sbot) => (actors) => [script]")
   }
@@ -53,16 +53,15 @@ const Playbook = function (scriptBuilder, cleanup) {
   feeds.forEach(f => output(f.id))
 
   const runTestStep = (step, next) => {
+    const inner = step(next)
+    if (typeof inner === 'function') {
+      inner(messageRefs)
+    }
     if (step.length === 0) {
-        // if the function doesn't accept a parameter,
-        // assume it's synchronous and move on
-        step()
-        next()
-      } else {
-        // if the function expects a parameter,
-        // assume it's async and let it call done itself
-        step(next)
-      }
+      // if the function doesn't accept a parameter,
+      // assume it's synchronous and move on
+      next()
+    }
   }
 
   const runMessageStep = (step, next) => {
@@ -108,7 +107,15 @@ const Playbook = function (scriptBuilder, cleanup) {
       return
     }
 
-    const next = () => runStep(playNum + 1)
+    let movedOn = false
+    const next = () => {
+      if (!movedOn) {
+        movedOn = true
+        runStep(playNum + 1)
+      } else {
+        console.warn("tried to call done() more than once in one step")
+      }
+    }
 
     const step = unpackStep(playbook[playNum], next)
   }

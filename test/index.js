@@ -36,8 +36,8 @@ tape('can use object or array to send messages', t => {
   ], t.end)
 })
 
-tape('message refs', t => {
-  Playbook(sbot => (a, b, c) => [
+tape('message refs available for message and function steps', t => {
+  Playbook(sbot => (a, b, c, d) => [
     step.message({
       from: a,
       data: {
@@ -52,9 +52,18 @@ tape('message refs', t => {
     }),
     step.message(c, 'z', refs => ({
       type: 'test',
-      msg: refs.x + ' ' + refs.y
+      msg: refs.x.value.content.msg + ' ' + refs.y.value.content.msg
     })),
-    step.test(done => done())
+    step.message(d, refs => (t.ok(refs.z, 'sneaking in a test here'), {
+      type: 'test',
+      msg: refs.x.value.content.msg + ' ' + refs.y.value.content.msg
+    })),
+    step.test(done => refs => {
+      t.equal(refs.x.value.content.msg, 'hey')
+      t.equal(refs.y.value.content.msg, 'there')
+      t.equal(refs.z.value.content.msg, 'hey there')
+      done()
+    })
   ], t.end)
 })
 
@@ -62,7 +71,7 @@ tape('can omit param for syncronous tests', t => {
   Playbook(sbot => guy => [
     step.test(() => t.ok(true, 'this ran')),
     step.test(done => (t.ok(true, 'and so did this'), done())),
-    step.test(() => t.ok(true, 'as well as this')),
+    step.test(() => refs => t.ok(true, 'as well as this')),
   ], t.end)
 })
 
