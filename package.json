@@ -1,6 +1,6 @@
 {
   "name": "scuttle-playbook",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "Easily test states in complex SSB apps",
   "main": "index.js",
   "repository": "git@github.com:maackle/scuttle-playbook.git",
