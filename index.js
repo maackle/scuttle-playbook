@@ -14,7 +14,20 @@ const Playbook = function (scriptBuilder, cleanup) {
   }
   // create a temporary server instance just for this play-through
   const sbot = scuttlebot({ temp: true })
-  const script = scriptBuilder(sbot)
+
+  const labeledMessages = {}
+  const getLabel = label => labeledMessages[label]
+  const setLabel = (label, val) => {
+    if (label) {
+      if (labeledMessages[label]) {
+        die(`There is already a message labeled ${label} in this playbook`)
+      } else {
+        labeledMessages[label] = val
+      }
+    }
+  }
+
+  const script = scriptBuilder(sbot, getLabel)
   const die = msg => {
     sbot.close()
     throw msg
@@ -42,31 +55,38 @@ const Playbook = function (scriptBuilder, cleanup) {
     }
 
     const play = playbook[playNum]
-    const next = () => runPlay(playNum + 1)
+    const next = () => {
+      runPlay(playNum + 1)
+    }
 
     if (typeof(play) === 'function') {
       // run some code, probably a test
-      if (play.length < 1) {
-        // if the function doesn't accept a second parameter,
+      if (play.length === 0) {
+        // if the function doesn't accept a parameter,
         // assume it's synchronous and move on
         play()
         next()
       } else {
-        // if the function expects a second parameter,
+        // if the function expects a parameter,
         // assume it's async and let it call done itself
         play(next)
       }
     } else if (typeof(play) === 'object') {
       // publish a message
-      let from, data
+      let from, data, label
       if (Array.isArray(play)) {
         from = play[0]
         data = play[1]
+        label = play.length === 3 ? play[2] : null
       } else {
         from = play.from
         data = play.data
+        label = play.label || null
       }
-      from.add(data, withException(next))
+      from.add(data, withException(msg => {
+        setLabel(label, msg)
+        next()
+      }))
     }
   }
 
