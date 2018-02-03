@@ -4,22 +4,22 @@ const tape = require('tape')
 const Playbook = require('..')
 const {withException} = require('../util')
 
-const step = Playbook.step
 
-tape('can use object or array to send messages', t => {
+tape('can use object or array to send messages (informal v0.0.1 style)', t => {
+  t.plan(4)
   Playbook(sbot => guy => [
-    step.message({
+    {
       from: guy,
       data: {
         type: 'test',
         msg: 'hallo',
       }
-    }),
-    step.message([guy, {
+    },
+    [guy, {
       type: 'test',
       msg: 'hallo',
-    }]),
-    step.test(done => pull(
+    }],
+    done => pull(
       sbot.createLogStream(),
       pull.collect(withException(log => {
         const content = {
@@ -32,37 +32,15 @@ tape('can use object or array to send messages', t => {
         t.equal(log[1].value.author, guy.id, 'array author ok')
         done()
       }))
-    ))
+    )
   ], t.end)
 })
 
-tape('message refs', t => {
-  Playbook(sbot => (a, b, c) => [
-    step.message({
-      from: a,
-      data: {
-        type: 'test',
-        msg: 'hey'
-      },
-      label: 'x',
-    }),
-    step.message([b, {
-      type: 'test',
-      msg: 'there'
-    }, 'y']),
-    step.message(refs => [c, {
-      type: 'test',
-      msg: refs.x + ' ' + refs.y
-    }, 'z']),
-    step.test(done => done())
-  ], t.end)
-})
-
-tape('can omit param for syncronous tests', t => {
+tape('can omit param for syncronous tests (informal v0.0.1 style)', t => {
   Playbook(sbot => guy => [
-    step.test(() => t.ok(true, 'this ran')),
-    step.test(done => (t.ok(true, 'and so did this'), done())),
-    step.test(() => t.ok(true, 'as well as this')),
+    () => t.ok(true, 'this ran'),
+    done => (t.ok(true, 'and so did this'), done()),
+    () => t.ok(true, 'as well as this'),
   ], t.end)
 })
 

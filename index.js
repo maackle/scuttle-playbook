@@ -7,6 +7,9 @@ const {withException} = require('./util')
 const output = x => x
 // const output = x => console.log(x)
 
+const MESSAGE_DEF_KEY = 'playbook$message'
+const TEST_DEF_KEY = 'playbook$test'
+
 const Playbook = function (scriptBuilder, cleanup) {
   if (typeof(scriptBuilder) !== 'function') {
     throw "Function signature must be: (sbot) => (actors) => [script]"
@@ -15,27 +18,29 @@ const Playbook = function (scriptBuilder, cleanup) {
   // create a temporary server instance just for this play-through
   const sbot = scuttlebot({ temp: true })
 
-  const labeledMessages = {}
-  const getLabel = label => labeledMessages[label]
+  // stuff to implement message refs
+  const messageRefs = {}
   const setLabel = (label, val) => {
     if (label) {
-      if (labeledMessages[label]) {
+      if (messageRefs[label]) {
         die(`There is already a message labeled ${label} in this playbook`)
       } else {
-        labeledMessages[label] = val
+        messageRefs[label] = val
       }
     }
   }
 
-  const script = scriptBuilder(sbot, getLabel)
+  // for errors
   const die = msg => {
     sbot.close()
     throw msg
   }
 
+  const script = scriptBuilder(sbot)
   if (typeof(script) !== 'function') {
     die("Function signature must be: (sbot) => (actors) => [script]")
   }
+
   // create as many feeds ("users") as there are arguments to `script`
   const feeds = new Array(script.length).fill().map(() => sbot.createFeed())
   const playbook = script(...feeds)
@@ -47,51 +52,69 @@ const Playbook = function (scriptBuilder, cleanup) {
   output("•§•      Playbook starting with these actors      •§•")
   feeds.forEach(f => output(f.id))
 
-  const runPlay = (playNum) => {
+  const unpackStep = step => {
+    if (step[MESSAGE_DEF_KEY]) {
+      step = step[MESSAGE_DEF_KEY]
+      if (typeof step === 'function') {
+        step = step(messageRefs)
+      }
+    }
+    if (step[TEST_DEF_KEY]) {
+      step = step[TEST_DEF_KEY]
+    }
+    return step
+  }
+
+  const runTestStep = (step, next) => {
+    if (step.length === 0) {
+        // if the function doesn't accept a parameter,
+        // assume it's synchronous and move on
+        step()
+        next()
+      } else {
+        // if the function expects a parameter,
+        // assume it's async and let it call done itself
+        step(next)
+      }
+  }
+
+  const runMessageStep = (step, next) => {
+    let from, data, label
+      if (Array.isArray(step)) {
+        from = step[0]
+        data = step[1]
+        label = step.length === 3 ? step[2] : null
+      } else {
+        from = step.from
+        data = step.data
+        label = step.label || null
+      }
+      from.add(data, withException(msg => {
+        setLabel(label, msg)
+        next()
+      }))
+  }
+
+  const runStep = (playNum) => {
     if (playNum >= playbook.length) {
       cleanup && cleanup()
       sbot.close()
       return
     }
 
-    const play = playbook[playNum]
-    const next = () => {
-      runPlay(playNum + 1)
-    }
+    const next = () => runStep(playNum + 1)
 
-    if (typeof(play) === 'function') {
-      // run some code, probably a test
-      if (play.length === 0) {
-        // if the function doesn't accept a parameter,
-        // assume it's synchronous and move on
-        play()
-        next()
-      } else {
-        // if the function expects a parameter,
-        // assume it's async and let it call done itself
-        play(next)
-      }
-    } else if (typeof(play) === 'object') {
-      // publish a message
-      let from, data, label
-      if (Array.isArray(play)) {
-        from = play[0]
-        data = play[1]
-        label = play.length === 3 ? play[2] : null
-      } else {
-        from = play.from
-        data = play.data
-        label = play.label || null
-      }
-      from.add(data, withException(msg => {
-        setLabel(label, msg)
-        next()
-      }))
+    const step = unpackStep(playbook[playNum])
+
+    if (typeof(step) === 'function') {
+      runTestStep(step, next)
+    } else if (typeof(step) === 'object') {
+      runMessageStep(step, next)
     }
   }
 
-  // run the first play to kick things off
-  runPlay(0)
+  // run the first step to kick things off
+  runStep(0)
 }
 
 Playbook.use = function (...args) {
@@ -99,4 +122,16 @@ Playbook.use = function (...args) {
   return Playbook
 }
 
+Playbook.step = {
+  message: function (f) {
+    return {
+      [MESSAGE_DEF_KEY]: f
+    }
+  },
+  test: function (f) {
+    return {
+      [TEST_DEF_KEY]: f
+    }
+  }
+}
 module.exports = Playbook

@@ -13,7 +13,7 @@ const followMessage = (target, following) => ({
   following: following,
 })
 
-tape('verify the follow graph', t => {
+tape('verify the follow graph (informal style)', t => {
 
   Playbook(sbot => (alice, bob) => {
     const hops = util.promisify(sbot.friends.hops)
@@ -75,7 +75,7 @@ tape('verify the follow graph', t => {
   }, t.end)
 })
 
-tape('verify multiple hops in a closed loop', t => {
+tape('verify multiple hops in a closed loop (informal style)', t => {
   Playbook(sbot => (amanda, brent, charlie) => [
     {
       from: amanda,
