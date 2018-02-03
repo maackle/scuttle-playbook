@@ -36,7 +36,7 @@ const Playbook = function (scriptBuilder, cleanup) {
     throw msg
   }
 
-  const script = scriptBuilder(sbot)
+  const script = scriptBuilder(sbot, messageRefs)
   if (typeof(script) !== 'function') {
     die("Function signature must be: (sbot) => (actors) => [script]")
   }
@@ -52,19 +52,6 @@ const Playbook = function (scriptBuilder, cleanup) {
   output("•§•      Playbook starting with these actors      •§•")
   feeds.forEach(f => output(f.id))
 
-  const unpackStep = step => {
-    if (step[MESSAGE_DEF_KEY]) {
-      step = step[MESSAGE_DEF_KEY]
-      if (typeof step === 'function') {
-        step = step(messageRefs)
-      }
-    }
-    if (step[TEST_DEF_KEY]) {
-      step = step[TEST_DEF_KEY]
-    }
-    return step
-  }
-
   const runTestStep = (step, next) => {
     if (step.length === 0) {
         // if the function doesn't accept a parameter,
@@ -79,20 +66,39 @@ const Playbook = function (scriptBuilder, cleanup) {
   }
 
   const runMessageStep = (step, next) => {
+    if (step.length < 1 || step.length > 3) {
+      die("A message must have two or three items in the following order:\n"
+          + "(actor, data) or (actor, label, data)\n"
+          + "Or it must be an object with keys {actor, data, label}")
+    }
     let from, data, label
-      if (Array.isArray(step)) {
-        from = step[0]
-        data = step[1]
-        label = step.length === 3 ? step[2] : null
-      } else {
-        from = step.from
-        data = step.data
-        label = step.label || null
-      }
-      from.add(data, withException(msg => {
-        setLabel(label, msg)
-        next()
-      }))
+    if (step.length === 1) {
+      from = step[0].from
+      data = step[0].data
+      label = step[0].label || null
+    } else {
+      const hasLabel = step.length === 3
+      from = step[0]
+      label = hasLabel ? step[1] : null
+      data = hasLabel ? step[2] : step[1]
+    }
+    if (typeof data === 'function') {
+      data = data(messageRefs)
+    }
+    from.add(data, withException(msg => {
+      setLabel(label, msg)
+      next()
+    }))
+  }
+
+  const unpackStep = (step, next) => {
+    if (step[MESSAGE_DEF_KEY]) {
+      step = step[MESSAGE_DEF_KEY]
+      runMessageStep(step, next)
+    } else if (step[TEST_DEF_KEY]) {
+      step = step[TEST_DEF_KEY]
+      runTestStep(step, next)
+    }
   }
 
   const runStep = (playNum) => {
@@ -104,13 +110,7 @@ const Playbook = function (scriptBuilder, cleanup) {
 
     const next = () => runStep(playNum + 1)
 
-    const step = unpackStep(playbook[playNum])
-
-    if (typeof(step) === 'function') {
-      runTestStep(step, next)
-    } else if (typeof(step) === 'object') {
-      runMessageStep(step, next)
-    }
+    const step = unpackStep(playbook[playNum], next)
   }
 
   // run the first step to kick things off
@@ -123,9 +123,9 @@ Playbook.use = function (...args) {
 }
 
 Playbook.step = {
-  message: function (f) {
+  message: function (...args) {
     return {
-      [MESSAGE_DEF_KEY]: f
+      [MESSAGE_DEF_KEY]: args
     }
   },
   test: function (f) {

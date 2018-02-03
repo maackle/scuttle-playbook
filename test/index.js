@@ -15,10 +15,10 @@ tape('can use object or array to send messages', t => {
         msg: 'hallo',
       }
     }),
-    step.message([guy, {
+    step.message(guy, {
       type: 'test',
       msg: 'hallo',
-    }]),
+    }),
     step.test(done => pull(
       sbot.createLogStream(),
       pull.collect(withException(log => {
@@ -46,14 +46,14 @@ tape('message refs', t => {
       },
       label: 'x',
     }),
-    step.message([b, {
+    step.message(b, 'y', {
       type: 'test',
       msg: 'there'
-    }, 'y']),
-    step.message(refs => [c, {
+    }),
+    step.message(c, 'z', refs => ({
       type: 'test',
       msg: refs.x + ' ' + refs.y
-    }, 'z']),
+    })),
     step.test(done => done())
   ], t.end)
 })
