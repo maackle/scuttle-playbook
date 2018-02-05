@@ -6,7 +6,7 @@ const {withException} = require('../util')
 
 const step = Playbook.step
 
-tape('can use object or array to send messages', t => {
+tape('can use an object or just function arguments to send a messages', t => {
   Playbook(sbot => guy => [
     step.message({
       from: guy,

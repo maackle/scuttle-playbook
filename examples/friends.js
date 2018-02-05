@@ -6,6 +6,7 @@ const Playbook = require('..')
                  .use(require('scuttlebot/plugins/replicate'))
                  .use(require('ssb-friends'))
 
+const step = Playbook.step
 
 const followMessage = (target, following) => ({
   type: 'contact',
@@ -18,11 +19,8 @@ tape('verify the follow graph (informal style)', t => {
   Playbook(sbot => (alice, bob) => {
     const hops = util.promisify(sbot.friends.hops)
     return [
-      {
-        from: alice,
-        data: followMessage(bob, true),
-      },
-      done => {
+      step.message(alice, followMessage(bob, true)),
+      step.test(done => {
         hops(alice.id).then(aliceFollows => {
           t.deepEqual(aliceFollows, {
             [alice.id]: 0,
@@ -30,12 +28,10 @@ tape('verify the follow graph (informal style)', t => {
           }, "alice follows bob")
           done()
         })
-      },
-      {
-        from: bob,
-        data: followMessage(alice, true),
-      },
-      done => {
+      }),
+
+      step.message(bob, followMessage(alice, true)),
+      step.test(done => {
         Promise.all([
           hops(alice.id),
           hops(bob.id)
@@ -50,12 +46,9 @@ tape('verify the follow graph (informal style)', t => {
           }, "bob follows alice")
           done()
         })
-      },
-      {
-        from: alice,
-        data: followMessage(bob, false),
-      },
-      done => {
+      }),
+      step.message(alice, followMessage(bob, false)),
+      step.test(done => {
         Promise.all([
           hops(alice.id),
           hops(bob.id)
@@ -70,26 +63,17 @@ tape('verify the follow graph (informal style)', t => {
           }, "bob still follows alice")
           done()
         })
-      }
+      })
     ]
   }, t.end)
 })
 
 tape('verify multiple hops in a closed loop (informal style)', t => {
   Playbook(sbot => (amanda, brent, charlie) => [
-    {
-      from: amanda,
-      data: followMessage(brent, true),
-    },
-    {
-      from: brent,
-      data: followMessage(charlie, true),
-    },
-    {
-      from: charlie,
-      data: followMessage(amanda, true),
-    },
-    done => {
+    step.message(amanda, followMessage(brent, true)),
+    step.message(brent, followMessage(charlie, true)),
+    step.message(charlie, followMessage(amanda, true)),
+    step.test(done => {
       const hops = util.promisify(sbot.friends.hops)
       Promise.all([
         hops(amanda.id),
@@ -107,6 +91,6 @@ tape('verify multiple hops in a closed loop (informal style)', t => {
         }, "charlie's hop graph")
         done()
       })
-    }
+    })
   ], t.end)
 })

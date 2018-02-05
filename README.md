@@ -14,19 +14,30 @@ A Playbook is a light structure that lets you define a "script" with one or more
 
 #### Message steps
 
-A message step looks like `step.message(actor, data)` or `step.message(actor, label, data)`
+The simplest message step looks like `step.message(actor, data)`
 
 ```js
 // no label
-step.message(actor, {
+step.message(actor1, {
   type: 'test',
   moreStuff: 'whatever you want!'
 })
+```
+
+You can also add a label to a message which allows you to refer to it in a later test step. The signature is `step.message(actor, label, data)`
+
+```js
 
 // with label
-step.message(actor, 'label' {
+step.message(actor1, 'label1' {
   type: 'test',
-  moreStuff: 'whatever you want!'
+  text: 'hi!'
+})
+
+// inject labeled messages with a closure
+step.message(actor2, refs => {
+  type: 'test',
+  text: `I heard ${refs.label1.value.author} say ${refs.label1.value.content.text}`
 })
 ```
 
@@ -49,6 +60,14 @@ If your test is purely synchronous, you can omit the `done` parameter and the pl
 step.test(() => {
   t.equal(1 + 1, 2)
   t.equal(e**(i * pi) + 1, 0)
+})
+```
+
+Finally, to refer to previously labeled messages in a test step, let your function return another function like so:
+
+```js
+step.test(done => refs => {
+  t.equal(refs.label1.key, 'foo')
 })
 ```
 
@@ -106,6 +125,8 @@ const finale = () => console.log('all done')
 // run it
 Playbook(script, finale)
 ```
+
+*TODO: Example with labeled messages*
 
 ## A little explanation
 
